@@ -35,6 +35,13 @@ require("./dist/markdown").ready.then(markdown => {
 ```
 
 
+## Install
+
+```
+npm install markdown-wasm
+```
+
+
 ## API
 
 ```ts
