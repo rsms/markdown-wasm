@@ -1,5 +1,5 @@
 {
-  "name": "markdown-wasm",
+  "name": "@rsms/markdown-wasm",
   "version": "1.0.0",
   "description": "Markdown parser and html generator implemented in WebAssembly",
   "main": "dist/markdown.js",
