@@ -1,0 +1,34 @@
+{
+  "name": "markdown-wasm",
+  "version": "1.0.0",
+  "description": "Markdown parser and html generator implemented in WebAssembly",
+  "main": "dist/markdown.js",
+  "jsnext:main": "dist/markdown.es.js",
+  "module": "dist/markdown.es.js",
+  "typings": "markdown.d.ts",
+  "homepage": "https://github.com/rsms/markdown-wasm",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rsms/markdown-wasm.git"
+  },
+  "files": [
+    "dist/markdown.wasm",
+    "dist/markdown.js",
+    "dist/markdown.js.map",
+    "dist/markdown.node.js",
+    "dist/markdown.node.js.map",
+    "dist/markdown.es.js",
+    "dist/markdown.es.js.map",
+    "markdown.d.ts",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "wasmc"
+  },
+  "author": "Rasmus Andersson <https://rsms.me/>",
+  "license": "MIT",
+  "devDependencies": {
+    "wasmc": "^2.0.1"
+  }
+}
