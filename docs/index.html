@@ -7,6 +7,7 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <link rel="stylesheet" href="https://rsms.me/raster/raster.css?v=8">
   <script type="text/javascript" src="markdown.js"></script>
+  <script type="text/javascript" async src="highlight.js"></script>
   <style type="text/css">
 
 :root {
@@ -228,11 +229,13 @@ With default settings, markdown-wasm allows embedded HTML.
   </grid>
 
 <script type="text/javascript">
+
 // await the loading of the web assembly module
-window["markdown"].ready.then(function(markdown){
+window["markdown"].ready.then(markdown => {
 
 const inputEl = document.getElementById("markdown-input")
 const outputEl = document.getElementById("html-output")
+let hljsTimer
 
 function update() {
   let source = inputEl.value
@@ -240,13 +243,27 @@ function update() {
     parseFlags: markdown.ParseFlags.DEFAULT | markdown.ParseFlags.NO_HTML,
   })
   outputEl.innerHTML = html
+  updateCodeHighlight()
+}
+
+function updateCodeHighlight() {
+  clearTimeout(hljsTimer)
+  if (typeof hljs == "undefined") {
+    hljsTimer = setTimeout(updateCodeSyntaxHighlighting, 500)
+    return
+  }
+  document.querySelectorAll('pre code[class^="language-"]').forEach(block => {
+    hljs.highlightBlock(block)
+  })
 }
 
 inputEl.addEventListener("input", update)
 update()
 
-console.log({markdown})
+// load the markdown module to make it playable in the browser console
+console.log("markdown module API:", markdown)
 
 })</script>
+<link rel="stylesheet" href="highlight.css">
 </body>
 </html>
