@@ -2,8 +2,6 @@ const package = require("./package.json")
 const outdir = debug ? builddir : "dist"
 
 const m = {
-  name:    "markdown",
-  out:     outdir + "/markdown.js",
   jsentry: "src/md.js",
   sources: [
     "src/wlib.c",
@@ -13,31 +11,49 @@ const m = {
     "src/fmt_html.c",
     // "src/fmt_json.c",
   ],
-  cflags: debug ? ["-DDEBUG=1"] : [],
+  cflags: [
+    "-DMD4C_USE_UTF8",
+  ].concat(debug ? [
+    // debug flags
+    "-DDEBUG=1",
+    "-DASSERTIONS=1", // emcc
+    "-DSAFE_HEAP=1", // emcc
+    "-DSTACK_OVERFLOW_CHECK=1", // emcc
+    "-DDEMANGLE_SUPPORT=1", // emcc
+  ] : [
+    // release flags
+  ]),
   constants: {
     VERSION: package.version,
   },
 }
 
+// —————————————————————————————————————————————————
+// products
 
-if (!debug) {
-  // generic js module
-  module({...m})
-
-  // node cjs module
-  module({ ...m,
-    name:    "markdown-node",
-    out:     outdir + "/markdown.node.js",
-    target:  "node",
-    embed:   true,
-  })
-}
-
-// node es module
+// embedded wasm, ES module, nodejs-specific compression
+// Suitable for using or bundling as a library targeting nodejs only
 module({ ...m,
-  name:    "markdown-es",
-  out:     outdir + "/markdown.es.js",
-  format:  "es",
+  name:    "markdown-node",
+  out:     outdir + "/markdown.node.js",
   target:  "node",
   embed:   true,
 })
+
+if (!debug) {
+  // sideloaded wasm, universal js library, exports API at global["markdown"] as a fallback
+  // Suitable as a runtime library in browsers
+  module({ ...m,
+    name: "markdown",
+    out:  outdir + "/markdown.js",
+  })
+
+  // embedded wasm, ES module
+  // Suitable for bundling as a library intended for browsers
+  module({ ...m,
+    name:    "markdown-es",
+    out:     outdir + "/markdown.es.js",
+    outwasm: outdir + "/markdown.wasm",
+    format:  "es",
+  })
+}
