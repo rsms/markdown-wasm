@@ -24,11 +24,14 @@
     "LICENSE"
   ],
   "scripts": {
-    "build": "wasmc"
+    "build": "wasmc",
+    "build-debug": "wasmc -g",
+    "test": "wasmc && bash test/test.sh",
+    "update-web": "cp dist/markdown.js dist/markdown.wasm docs/"
   },
   "author": "Rasmus Andersson <https://rsms.me/>",
   "license": "MIT",
   "devDependencies": {
-    "wasmc": "^2.0.1"
+    "wasmc": "^2.2.0"
   }
 }
