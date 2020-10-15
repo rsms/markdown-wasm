@@ -91,7 +91,7 @@ static void render_html_escaped(HtmlRenderer* r, const char* data, size_t size) 
       off += 4;
     }
 
-    while (off < size  &&  !HTML_NEED_ESCAPE(data[off])) {
+    while (off < size && !HTML_NEED_ESCAPE(data[off])) {
       off++;
     }
 
@@ -152,7 +152,7 @@ static size_t WBufAppendSlug(WBuf* b, const char* pch, size_t len) {
       }
     }
     c = slugMap[x];
-    if (c != '-' || pc != '-' && pc) {
+    if (c != '-' || (pc != '-' && pc)) {
       // note: check "pc" to trim leading '-'
       *(b->ptr++) = c;
       pc = c;
