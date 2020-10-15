@@ -2,4 +2,6 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-node issue5.js "$@"
+for f in issue*.js; do
+  node "$f" "$@"
+done
