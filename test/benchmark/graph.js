@@ -43,7 +43,7 @@ function main() {
   // console.log({data})
 
   const commonGraphConfig = {
-    width: 960,
+    width: 840, // ~ width of images on github
     fontSize: 16,
     color: d3.scaleOrdinal(d3.schemeTableau10),
     // color: d3.scaleOrdinal().range(["#111", "#333", "#555", "#777", "#999"]),
