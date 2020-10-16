@@ -56,8 +56,9 @@ if [[ "$PWD" != "$OUTER_PWD" ]]; then
   echo "  cd '$PWD'"
 fi
 cat << _MESSAGE_
-  git commit -m "v${PKG_VERSION}" . ../jslib.go
+  git commit -m "release v${PKG_VERSION}" .
+  git tag "v${PKG_VERSION}"
   npm publish
-  git push
+  git push origin master "v${PKG_VERSION}"
 
 _MESSAGE_
