@@ -49,6 +49,9 @@ echo "" ; echo "wasmc -clean"
 echo "" ; echo "./test/test.sh"
 ./test/test.sh
 
+# web site
+cp dist/markdown.js dist/markdown.js.map dist/markdown.wasm ./docs/
+
 # commit, tag and push git
 echo "Ready to commit, publish & push:"
 echo ""
