@@ -5,13 +5,10 @@
 #include "fmt_html.h"
 // #include "fmt_json.h"
 
-// #include "md4c.h"
-/* If set, debug output from md_parse() is sent to stderr. */
-#define MD_RENDER_FLAG_DEBUG                0x0001
-#define MD_RENDER_FLAG_VERBATIM_ENTITIES    0x0002
-
+// these should be in sync with "OutputFlags" in md.js
 typedef enum OutputFlags {
-  OutputFlagsHTML = 1 << 0,
+  OutputFlagHTML  = 1 << 0,
+  OutputFlagXHTML = 1 << 1,
 } OutputFlags;
 
 typedef enum ErrorCode {
@@ -44,10 +41,15 @@ export size_t parseUTF8(
 
   WBufReset(&outbuf);
 
-  if (outflags & OutputFlagsHTML) {
+  if (outflags & OutputFlagHTML) {
     WBufReserve(&outbuf, inbuflen * 2);  // approximate output size to minimize reallocations
 
-    if (fmt_html(inbufptr, inbuflen, &outbuf, parser_flags) != 0) {
+    u32 render_flags = 0;
+    if (outflags & OutputFlagXHTML) {
+      render_flags |= MD_HTML_FLAG_XHTML;
+    }
+
+    if (fmt_html(inbufptr, inbuflen, &outbuf, parser_flags, render_flags) != 0) {
       // fmt_html returns status of md_parse which only fails in extreme cases
       // like when out of memory. md4c does not provide error codes or error messages.
       WErrSet(ERR_MD_PARSE, "md parser error");

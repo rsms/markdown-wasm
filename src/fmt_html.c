@@ -34,6 +34,7 @@ typedef struct HtmlRenderer_st {
   WBuf* outbuf;
   int   imgnest;
   int   addanchor;
+  u32   flags;
 } HtmlRenderer;
 
 
@@ -246,7 +247,7 @@ static void render_close_img_span(HtmlRenderer* r, const MD_SPAN_IMG_DETAIL* det
     render_literal(r, "\" title=\"");
     render_attribute(r, &det->title);
   }
-  render_literal(r, "\">");
+  render_literal(r, (r->flags & MD_HTML_FLAG_XHTML) ? "\"/>" : "\">");
   r->imgnest--;
 }
 
@@ -273,7 +274,7 @@ static int enter_block_callback(MD_BLOCKTYPE type, void* detail, void* userdata)
     case MD_BLOCK_UL:       render_literal(r, "<ul>\n"); break;
     case MD_BLOCK_OL:       render_open_ol_block(r, (const MD_BLOCK_OL_DETAIL*)detail); break;
     case MD_BLOCK_LI:       render_open_li_block(r, (const MD_BLOCK_LI_DETAIL*)detail); break;
-    case MD_BLOCK_HR:       render_literal(r, "<hr>\n"); break;
+    case MD_BLOCK_HR:       render_literal(r, (r->flags & MD_HTML_FLAG_XHTML) ? "<hr/>\n" : "<hr>\n"); break;
     case MD_BLOCK_H:
     {
       render_literal(r, head[((MD_BLOCK_H_DETAIL*)detail)->level - 1]);
@@ -324,14 +325,28 @@ static int enter_span_callback(MD_SPANTYPE type, void* detail, void* userdata) {
   HtmlRenderer* r = (HtmlRenderer*) userdata;
 
   if(r->imgnest > 0) {
-    /* We are inside an image, i.e. rendering the ALT attribute of
-     * <IMG> tag. */
+    /* We are inside a Markdown image label. Markdown allows to use any
+     * emphasis and other rich contents in that context similarly as in
+     * any link label.
+     *
+     * However, unlike in the case of links (where that contents becomes
+     * contents of the <a>...</a> tag), in the case of images the contents
+     * is supposed to fall into the attribute alt: <img alt="...">.
+     *
+     * In that context we naturally cannot output nested HTML tags. So lets
+     * suppress them and only output the plain text (i.e. what falls into
+     * text() callback).
+     *
+     * This make-it-a-plain-text approach is the recommended practice by
+     * CommonMark specification (for HTML output).
+     */
     return 0;
   }
 
   switch(type) {
     case MD_SPAN_EM:                render_literal(r, "<em>"); break;
     case MD_SPAN_STRONG:            render_literal(r, "<b>"); break;
+    case MD_SPAN_U:                 render_literal(r, "<u>"); break;
     case MD_SPAN_A:                 render_open_a_span(r, (MD_SPAN_A_DETAIL*) detail); break;
     case MD_SPAN_IMG:               render_open_img_span(r, (MD_SPAN_IMG_DETAIL*) detail); break;
     case MD_SPAN_CODE:              render_literal(r, "<code>"); break;
@@ -348,8 +363,8 @@ static int leave_span_callback(MD_SPANTYPE type, void* detail, void* userdata) {
   HtmlRenderer* r = (HtmlRenderer*) userdata;
 
   if(r->imgnest > 0) {
-    /* We are inside an image, i.e. rendering the ALT attribute of
-     * <IMG> tag. */
+    /* Ditto as in enter_span_callback(), except we have to allow the
+     * end of the <img> tag. */
     if(r->imgnest == 1  &&  type == MD_SPAN_IMG)
       render_close_img_span(r, (MD_SPAN_IMG_DETAIL*) detail);
     return 0;
@@ -358,6 +373,7 @@ static int leave_span_callback(MD_SPANTYPE type, void* detail, void* userdata) {
   switch(type) {
     case MD_SPAN_EM:                render_literal(r, "</em>"); break;
     case MD_SPAN_STRONG:            render_literal(r, "</b>"); break;
+    case MD_SPAN_U:                 render_literal(r, "</u>"); break;
     case MD_SPAN_A:                 render_literal(r, "</a>"); break;
     case MD_SPAN_IMG:               /*noop, handled above*/ break;
     case MD_SPAN_CODE:              render_literal(r, "</code>"); break;
@@ -395,7 +411,17 @@ static int text_callback(MD_TEXTTYPE type, const MD_CHAR* text, MD_SIZE size, vo
 
   switch(type) {
     case MD_TEXT_NULLCHAR:  render_text(r, ucReplacementUTF8, sizeof(ucReplacementUTF8)); break;
-    case MD_TEXT_BR:        render_literal(r, (r->imgnest == 0 ? "<br>\n" : " ")); break;
+    case MD_TEXT_BR:
+      render_literal(
+        r,
+        r->imgnest == 0 ?
+          ((r->flags & MD_HTML_FLAG_XHTML) ? "<br/>\n" : "<br>\n") :
+          " "
+      );
+      break;
+
+    render_literal(r, (r->flags & MD_HTML_FLAG_XHTML) ? "<hr/>\n" : "<hr>\n"); break;
+
     case MD_TEXT_SOFTBR:    render_literal(r, (r->imgnest == 0 ? "\n" : " ")); break;
     case MD_TEXT_HTML:      render_text(r, text, size); break;
     case MD_TEXT_ENTITY:    render_text(r, text, size); break;
@@ -409,9 +435,14 @@ static int text_callback(MD_TEXTTYPE type, const MD_CHAR* text, MD_SIZE size, vo
 //   dlog("MD4C: %s\n", msg);
 // }
 
-int
-fmt_html(const MD_CHAR* input, MD_SIZE input_size, WBuf* outbuf, unsigned parser_flags) {
-  HtmlRenderer render = { outbuf, 0, 0 };
+int fmt_html(
+  const MD_CHAR* input,
+  MD_SIZE input_size,
+  WBuf* outbuf,
+  u32 parser_flags,
+  u32 render_flags
+) {
+  HtmlRenderer render = { outbuf, 0, 0, render_flags };
 
   MD_PARSER parser = {
     0,

@@ -6,21 +6,15 @@ export function parse(s :Source, o? :ParseOptions & { asMemoryView? :never|false
 export function parse(s :Source, o? :ParseOptions & { asMemoryView :true }) :Uint8Array
 
 /** Markdown source code can be provided as a JavaScript string or UTF8 encoded data */
-type Source = string|ArrayLike<number>
+type Source = string | ArrayLike<number>
 
 /** Options for the parse function */
 export interface ParseOptions {
-  /**
-   * Customize parsing.
-   * If not provided, the following flags are used, equating to github-style parsing:
-   *   COLLAPSE_WHITESPACE
-   *   PERMISSIVE_ATX_HEADERS
-   *   PERMISSIVE_URL_AUTO_LINKS
-   *   STRIKETHROUGH
-   *   TABLES
-   *   TASK_LISTS
-   */
+  /** Customize parsing. Defaults to ParseFlags.DEFAULT */
   parseFlags? :ParseFlags
+
+  /** Select output format. Defaults to "html" */
+  format? : "html" | "xhtml"
 
   /**
    * asMemoryView=true causes parse() to return a view of heap memory as a Uint8Array,
@@ -51,7 +45,18 @@ export enum ParseFlags {
   /** Enable tables extension. */                                 TABLES,
   /** Enable task list extension. */                              TASK_LISTS,
   /** Enable wiki links extension. */                             WIKI_LINKS,
+  /** Enable underline extension (disables '_' for emphasis) */   UNDERLINE,
 
-  /** Default flags */                                            DEFAULT,
-  /** Shorthand for NO_HTML_BLOCKS | NO_HTML_SPANS */             NO_HTML,
+  /** Default flags are:
+   *    COLLAPSE_WHITESPACE |
+   *    PERMISSIVE_ATX_HEADERS |
+   *    PERMISSIVE_URL_AUTO_LINKS |
+   *    STRIKETHROUGH |
+   *    TABLES |
+   *    TASK_LISTS
+   */
+  DEFAULT,
+
+  /** Shorthand for NO_HTML_BLOCKS | NO_HTML_SPANS */
+  NO_HTML,
 }
