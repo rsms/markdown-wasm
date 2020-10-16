@@ -3,9 +3,10 @@
 Very fast Markdown parser & HTML renderer implemented in WebAssembly
 
 - Zero dependencies
-- Portable
-- Simple API
-- Fast and efficient
+- Portable & safe
+- [Simple API](#api)
+- [Fast and efficient](#benchmarks)
+- JS + WASM is only 31 kB gzipped
 
 Based on [md4c](http://github.com/mity/md4c)
 
@@ -19,7 +20,7 @@ const markdown = require("./dist/markdown.node.js")
 console.log(markdown.parse("# hello\n*world*"))
 ```
 
-ES module, WASM loaded async from separate file
+ES module with WASM loaded separately
 
 ```js
 import * as markdown from "./dist/markdown.es.js"
@@ -27,7 +28,7 @@ await markdown.ready
 console.log(markdown.parse("# hello\n*world*"))
 ```
 
-In web browser, WASM loaded async from separate file
+Web browser
 
 ```html
 <script src="markdown.js"></script>
@@ -79,6 +80,8 @@ This graph shows the spread between the fastest and slowest parse-and-render ope
 for each library. Lower numbers are better.
 
 ![](test/benchmark/results/minmax-parse-time.svg)
+
+See [`test/benchmark`](test/benchmark#readme) for more information.
 
 
 ## API
@@ -157,4 +160,18 @@ Build debug version of markdown into ./build/debug and watch source files:
 
 ```
 npx wasmc -g -w
+```
+
+If you need special builds, like for example an ES module with embedded WASM,
+edit the `wasmc.js` file and add `module({...})` directives.
+
+Example:
+
+```js
+module({ ...m,
+  name:   "markdown-custom",
+  out:    outdir + "/markdown.custom.js",
+  embed:  true,
+  format: "es",
+})
 ```
