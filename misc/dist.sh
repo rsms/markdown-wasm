@@ -18,6 +18,10 @@ Usage: $0 [-major | -minor | -patch]
   -patch    Bump patch version. e.g. 1.2.3 => 1.2.4
   (nothing) Leave version in package.json unchanged ($PKG_VERSION)
 _MESSAGE_
+  echo -n "Current version on NPM: ••• "
+  NPM_VERSION=$(npm show markdown-wasm version)
+  echo -en "\rCurrent version on NPM: ${NPM_VERSION}"
+  echo ""
   exit 1
 fi
 
