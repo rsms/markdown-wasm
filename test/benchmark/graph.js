@@ -27,6 +27,7 @@ const fs = require("fs")
 const Path = require("path")
 const D3Node = require("d3-node")
 const d3 = require("d3")
+const SVGo = require("svgo")
 
 
 function main() {
@@ -459,7 +460,11 @@ ${format(d.data[d.key])}`)
 }
 
 
-function writefile(dir, filename, contents) {
+async function writefile(dir, filename, contents) {
+  const ext = Path.extname(filename).toLowerCase()
+  if (ext == ".svg") {
+    contents = await optimizeSvg(contents)
+  }
   filename = Path.relative(process.cwd(), Path.resolve(dir, filename))
   console.log(`write ${filename}`)
   fs.writeFileSync(filename, contents, "utf8")
@@ -487,6 +492,18 @@ function displayImageInTerminal(imageBuffer, name) {
   function b64(s) {
     return Buffer.from(s, "utf8").toString("base64")
   }
+}
+
+
+const svgo = new SVGo({})
+
+// optimizeSvg(svgText :string) :Promise<string>
+async function optimizeSvg(svgText) {
+  const config = {
+    multipass: true,
+  }
+  const { data } = await svgo.optimize(svgText, config)
+  return data
 }
 
 
