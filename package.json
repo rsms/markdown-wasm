@@ -27,8 +27,10 @@
   "scripts": {
     "build": "wasmc",
     "build-debug": "wasmc -g",
+    "build-watch": "wasmc -g -w",
     "test": "wasmc -quiet && bash test/test.sh >/dev/null && echo OK",
-    "update-web": "cp dist/markdown.js dist/markdown.wasm docs/"
+    "update-web": "cp dist/markdown.js dist/markdown.wasm docs/",
+    "print-gzip-size": "echo 'dist/markdown.{js,wasm} gzipped:' $(gzip -9 -c dist/markdown.js dist/markdown.wasm | wc -c | cat) bytes"
   },
   "author": "Rasmus Andersson <https://rsms.me/>",
   "license": "MIT",
