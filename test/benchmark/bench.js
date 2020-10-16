@@ -79,11 +79,14 @@ function benchmarkFile(benchfile) {
   .add('markdown-it', function() {
     markdownit.render(contents);
   })
-  .add('markdown-wasm/string', function() {
-    markdown_wasm.parse(contents);
-  })
-  .add('markdown-wasm/bytes', function() {
+  .add('markdown-wasm', function() {
     markdown_wasm.parse(contentsBuffer, {asMemoryView:true});
   })
+  // .add('markdown-wasm/string', function() {
+  //   markdown_wasm.parse(contents);
+  // })
+  // .add('markdown-wasm/bytes', function() {
+  //   markdown_wasm.parse(contentsBuffer, {asMemoryView:true});
+  // })
   .run();
 }

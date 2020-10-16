@@ -104,12 +104,6 @@ function loadData(csvfile) {
   const fileset = new Set()
 
   d3.csvParse(csvText, d => {
-    if (d.library == "markdown-wasm/string") {
-      return
-    }
-    if (d.library == "markdown-wasm/bytes") {
-      d.library = "markdown-wasm"
-    }
     let lib = libraries[d.library] || (libraries[d.library] = {})
     const ops_sec = parseFloat(d["ops/sec"])
     const filesize = parseInt(d["filesize"])
