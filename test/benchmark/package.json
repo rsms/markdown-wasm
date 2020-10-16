@@ -9,7 +9,7 @@
   "license": "BSD-2-Clause",
   "main": "bench.js",
   "scripts": {
-    "bench": "node bench.js ./samples | tee results/bench.csv && node graph.js result/bench.csv"
+    "bench": "node bench.js ./samples | tee results/bench.csv && node graph.js results/bench.csv"
   },
   "dependencies": {
     "benchmark": "^2.1.4",
