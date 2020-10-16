@@ -12,26 +12,30 @@ Based on [md4c](http://github.com/mity/md4c)
 
 ## Examples
 
-In Nodejs
+In NodeJS, single file with embedded compressed WASM
 
 ```js
 const markdown = require("./dist/markdown.node.js")
 console.log(markdown.parse("# hello\n*world*"))
 ```
 
-ES module
+ES module, WASM loaded async from separate file
 
 ```js
-import * as markdown from "./dist/markdown.es"
+import * as markdown from "./dist/markdown.es.js"
+await markdown.ready
 console.log(markdown.parse("# hello\n*world*"))
 ```
 
-Separately loded wasm module (useful in web browsers)
+In web browser, WASM loaded async from separate file
 
-```js
-require("./dist/markdown").ready.then(markdown => {
+```html
+<script src="markdown.js"></script>
+<script>
+window["markdown"].ready.then(markdown => {
   console.log(markdown.parse("# hello\n*world*"))
 })
+</script>
 ```
 
 
@@ -40,6 +44,41 @@ require("./dist/markdown").ready.then(markdown => {
 ```
 npm install markdown-wasm
 ```
+
+
+
+## Benchmarks
+
+The [`test/benchmark`](test/benchmark) directory contain a benchmark suite which you can
+run yourself. It tests a few popular markdown parser-renderers by parsing & rendering a bunch
+of different sample markdown files.
+
+The following results were samples on a 2.9 GHz MacBook running macOS 10.15, NodeJS v14.11.0
+
+
+#### Average ops/second
+
+Ops/second represents how many times a library is able to parse markdown and render HTML
+during a second, on average across all sample files.
+
+![](test/benchmark/results/avg-ops-per-sec.svg)
+
+
+#### Average throughput
+
+Throughput is the average amount of markdown data processed during a second while both parsing
+and rendering to HTML. The statistics does not include HTML generated but only bytes of markdown
+source text parsed.
+
+![](test/benchmark/results/avg-throughput.svg)
+
+
+#### Min–max parse time
+
+This graph shows the spread between the fastest and slowest parse-and-render operations
+for each library. Lower numbers are better.
+
+![](test/benchmark/results/minmax-parse-time.svg)
 
 
 ## API
@@ -114,7 +153,7 @@ npm install
 npx wasmc
 ```
 
-Build debug version of markdown-es into ./build/debug and watch source files:
+Build debug version of markdown into ./build/debug and watch source files:
 
 ```
 npx wasmc -g -w

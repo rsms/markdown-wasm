@@ -1,0 +1,47 @@
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Benchmarks</title>
+  <style>
+body {
+  padding: 2em;
+  font:14px sans-serif;
+  background: #f5f5f5;
+}
+img {
+  display: block;
+  /*border: 1px solid #eee;*/
+  margin: 1em 0 2em 0;
+  background: white;
+}
+  </style>
+</head>
+<body>
+<script>
+
+function update() {
+  const r = Math.random()
+  document.body.innerHTML = `
+    Average ops/second
+    <img src="avg-ops-per-sec.svg?${r}">
+
+    Average throughput in megabytes
+    <img src="avg-throughput.svg?${r}">
+
+    Min–max parse time (lower is better)
+    <img src="minmax-parse-time.svg?${r}">
+  `
+
+  // min-mean-max candlestick ops/second
+  // <img src="min-mean-max-candlestick.svg?${r}">
+}
+
+update()
+// setInterval(update, 500)
+setTimeout(update, 1000)
+
+</script>
+</body>
+</html>
