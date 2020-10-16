@@ -79,7 +79,7 @@ export function parse(source, options) {
   //   console.log(utf8.decode(outbuf))
   // }
 
-  if (options.asMemoryView) {
+  if (options.bytes || options.asMemoryView) {
     return outbuf
   }
   return utf8.decode(outbuf)

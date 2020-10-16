@@ -2,8 +2,8 @@
  * parse reads markdown source at s and converts it to HTML.
  * When output is a byte array, it will be a reference.
  */
-export function parse(s :Source, o? :ParseOptions & { asMemoryView? :never|false }) :string
-export function parse(s :Source, o? :ParseOptions & { asMemoryView :true }) :Uint8Array
+export function parse(s :Source, o? :ParseOptions & { bytes? :never|false }) :string
+export function parse(s :Source, o? :ParseOptions & { bytes :true }) :Uint8Array
 
 /** Markdown source code can be provided as a JavaScript string or UTF8 encoded data */
 type Source = string | ArrayLike<number>
@@ -17,8 +17,7 @@ export interface ParseOptions {
   format? : "html" | "xhtml"
 
   /**
-   * asMemoryView=true causes parse() to return a view of heap memory as a Uint8Array,
-   * instead of a string.
+   * bytes=true causes parse() to return the result as a Uint8Array instead of a string.
    *
    * The returned Uint8Array is only valid until the next call to parse().
    * If you need to keep the returned data around, call Uint8Array.slice() to make a copy,
@@ -27,6 +26,9 @@ export interface ParseOptions {
    * This only provides a performance benefit when you never need to convert the output
    * to a string. In most cases you're better off leaving this unset or false.
    */
+  bytes? :boolean
+
+  /** @depreceated use "bytes" instead (v1.1.1) */
   asMemoryView? :boolean
 }
 
