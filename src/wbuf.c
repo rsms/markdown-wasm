@@ -15,12 +15,8 @@ void WBufReset(WBuf* b) {
   b->ptr = b->start;
 }
 
-inline size_t WBufCap(WBuf* b) { return b->end - b->start; } // total capacity (size)
-inline size_t WBufLen(WBuf* b) { return b->ptr - b->start; } // valid bytes at start
-inline size_t WBufAvail(WBuf* b) { return b->end - b->ptr; } // bytes available
-
 // grows buffer so that there is at least minspace available space
-static void WBufGrow(WBuf* b, size_t minspace) {
+void WBufGrow(WBuf* b, size_t minspace) {
   // size_t avail = b->end - b->ptr;
   size_t len = WBufLen(b); // store len before changing b
   size_t cap = WBufCap(b);
@@ -40,13 +36,6 @@ void WBufReserve(WBuf* b, size_t minspace) {
   if (WBufAvail(b) < minspace) {
     WBufGrow(b, minspace);
   }
-}
-
-void WBufAppendc(WBuf* b, char c) {
-  if (WBufAvail(b) < 1) {
-    WBufGrow(b, 1);
-  }
-  *(b->ptr++) = c;
 }
 
 void WBufAppendBytes(WBuf* b, const void* bytes, size_t len) {
@@ -159,6 +148,35 @@ static inline size_t fmtu32(u32 n, u32 radix, char* buf) {
 void WBufAppendU32(WBuf* b, u32 n, u32 radix) {
   WBufReserve(b, 32);
   b->ptr += fmtu32(n, radix, b->ptr);
+}
+
+
+void _WBufAppendUTF8Codepoint2(WBuf* b, u32 codepoint) {
+  unsigned char utf8[4];
+  size_t n;
+  if (codepoint <= 0x7ff) {
+    n = 2;
+    utf8[0] = 0xc0 | ((codepoint >>  6) & 0x1f);
+    utf8[1] = 0x80 + ((codepoint >>  0) & 0x3f);
+  } else if (codepoint <= 0xffff) {
+    n = 3;
+    utf8[0] = 0xe0 | ((codepoint >> 12) & 0xf);
+    utf8[1] = 0x80 + ((codepoint >>  6) & 0x3f);
+    utf8[2] = 0x80 + ((codepoint >>  0) & 0x3f);
+  } else {
+    n = 4;
+    utf8[0] = 0xf0 | ((codepoint >> 18) & 0x7);
+    utf8[1] = 0x80 + ((codepoint >> 12) & 0x3f);
+    utf8[2] = 0x80 + ((codepoint >>  6) & 0x3f);
+    utf8[3] = 0x80 + ((codepoint >>  0) & 0x3f);
+  }
+
+  if (0 < codepoint && codepoint <= 0x10ffff) {
+    WBufAppendBytes(b, (const char*)utf8, n);
+  } else {
+    static const char utf8_replacement_char[] = { 0xef, 0xbf, 0xbd };
+    WBufAppendBytes(b, utf8_replacement_char, sizeof(utf8_replacement_char));
+  }
 }
 
 

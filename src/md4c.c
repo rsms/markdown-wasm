@@ -3678,7 +3678,7 @@ md_analyze_emph(MD_CTX* ctx, int mark_index)
     /* If we can be a closer, try to resolve with the preceding opener. */
     if(mark->flags & MD_MARK_POTENTIAL_CLOSER) {
         MD_MARK* opener = NULL;
-        int opener_index;
+        int opener_index = 0;
 
         if(mark->ch == _T('*')) {
             MD_MARKCHAIN* opener_chains[6];
@@ -5654,7 +5654,7 @@ md_line_indentation(MD_CTX* ctx, unsigned total_indent, OFF beg, OFF* p_end)
     return indent - total_indent;
 }
 
-static const MD_LINE_ANALYSIS md_dummy_blank_line = { MD_LINE_BLANK, 0 };
+static const MD_LINE_ANALYSIS md_dummy_blank_line = { MD_LINE_BLANK, 0, 0, 0, 0 };
 
 /* Analyze type of the line and find some its properties. This serves as a
  * main input for determining type and boundaries of a block. */

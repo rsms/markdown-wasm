@@ -41,6 +41,15 @@ const OutputFlags = {
   XHTML: 1 << 1, // Output XHTML (only has effect with HTML flag set)
 }
 
+// these should be in sync with "Formatter" in md.c
+const FormatterNONE = 0
+    , FormatterHTML = 1
+    , FormatterJSON = 2
+
+// html formatter flags (sync with fmt_html.h)
+const MD_HTML_FLAG_XHTML = 1 << 0
+
+
 export function parse(source, options) {
   options = options || {}
 
@@ -49,17 +58,17 @@ export function parse(source, options) {
     options.parseFlags
   )
 
-  let outputFlags = 0
-  switch (options.format) {
-    case "xhtml":
-      outputFlags |= OutputFlags.HTML | OutputFlags.XHTML
-      break
+  let formatter = FormatterHTML
+  let fmtFlags = 0
 
+  if (options.format) switch (options.format) {
     case "html":
-    case undefined:
-    case null:
-    case "":
-      outputFlags |= OutputFlags.HTML
+      break
+    case "xhtml":
+      fmtFlags |= MD_HTML_FLAG_XHTML
+      break
+    case "json":
+      formatter = FormatterJSON
       break
 
     default:
@@ -68,7 +77,7 @@ export function parse(source, options) {
 
   let buf = typeof source == "string" ? utf8.encode(source) : source
   let outbuf = withOutPtr(outptr => withTmpBytePtr(buf, (inptr, inlen) =>
-    _parseUTF8(inptr, inlen, parseFlags, outputFlags, outptr)
+    _parseUTF8(inptr, inlen, parseFlags, formatter, fmtFlags, outptr)
   ))
 
   // check for error and throw if needed

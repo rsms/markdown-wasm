@@ -1,5 +1,5 @@
 /*
- * md4c modified for mdjs.
+ * md4c modified for markdown-wasm.
  * Original source code is licensed as follows:
  *
  * Copyright (c) 2016-2019 Martin Mitas
@@ -439,14 +439,14 @@ int fmt_html(
   const MD_CHAR* input,
   MD_SIZE input_size,
   WBuf* outbuf,
-  u32 parser_flags,
-  u32 render_flags
+  u32 parseFlags,
+  u32 fmtFlags
 ) {
-  HtmlRenderer render = { outbuf, 0, 0, render_flags };
+  HtmlRenderer render = { outbuf, 0, 0, fmtFlags };
 
   MD_PARSER parser = {
     0,
-    parser_flags,
+    parseFlags,
     enter_block_callback,
     leave_block_callback,
     enter_span_callback,
