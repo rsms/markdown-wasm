@@ -26,6 +26,7 @@
 #include "md4c.h"
 
 #include <limits.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -69,6 +70,12 @@
 #ifndef TRUE
     #define TRUE            1
     #define FALSE           0
+#endif
+
+#if defined(__has_attribute) && __has_attribute(unused)
+    #define MD_UNUSED __attribute__((unused))
+#else
+    #define MD_UNUSED
 #endif
 
 
@@ -465,7 +472,7 @@ md_text_with_null_replacement(MD_CTX* ctx, MD_TEXTTYPE type, const CHAR* str, SZ
 typedef struct MD_UNICODE_FOLD_INFO_tag MD_UNICODE_FOLD_INFO;
 struct MD_UNICODE_FOLD_INFO_tag {
     unsigned codepoints[3];
-    int n_codepoints;
+    unsigned n_codepoints;
 };
 
 
@@ -669,7 +676,7 @@ struct MD_UNICODE_FOLD_INFO_tag {
             const unsigned* map;
             const unsigned* data;
             size_t map_size;
-            int n_codepoints;
+            unsigned n_codepoints;
         } FOLD_MAP_LIST[] = {
             { FOLD_MAP_1, FOLD_MAP_1_DATA, SIZEOF_ARRAY(FOLD_MAP_1), 1 },
             { FOLD_MAP_2, FOLD_MAP_2_DATA, SIZEOF_ARRAY(FOLD_MAP_2), 2 },
@@ -689,12 +696,12 @@ struct MD_UNICODE_FOLD_INFO_tag {
 
         /* Try to locate the codepoint in any of the maps. */
         for(i = 0; i < (int) SIZEOF_ARRAY(FOLD_MAP_LIST); i++) {
-            int index;
+            unsigned index;
 
             index = md_unicode_bsearch__(codepoint, FOLD_MAP_LIST[i].map, FOLD_MAP_LIST[i].map_size);
             if(index >= 0) {
                 /* Found the mapping. */
-                int n_codepoints = FOLD_MAP_LIST[i].n_codepoints;
+                unsigned n_codepoints = FOLD_MAP_LIST[i].n_codepoints;
                 const unsigned* map = FOLD_MAP_LIST[i].map;
                 const unsigned* codepoints = FOLD_MAP_LIST[i].data + (index * n_codepoints);
 
@@ -886,7 +893,7 @@ struct MD_UNICODE_FOLD_INFO_tag {
  * what the caller should allocate.)
  */
 static void
-md_merge_lines(MD_CTX* ctx, OFF beg, OFF end, const MD_LINE* lines, int n_lines,
+md_merge_lines(MD_CTX* ctx, OFF beg, OFF end, const MD_LINE* lines,
                CHAR line_break_replacement_char, CHAR* buffer, SZ* p_size)
 {
     CHAR* ptr = buffer;
@@ -921,7 +928,7 @@ md_merge_lines(MD_CTX* ctx, OFF beg, OFF end, const MD_LINE* lines, int n_lines,
 /* Wrapper of md_merge_lines() which allocates new buffer for the output string.
  */
 static int
-md_merge_lines_alloc(MD_CTX* ctx, OFF beg, OFF end, const MD_LINE* lines, int n_lines,
+md_merge_lines_alloc(MD_CTX* ctx, OFF beg, OFF end, const MD_LINE* lines,
                     CHAR line_break_replacement_char, CHAR** p_str, SZ* p_size)
 {
     CHAR* buffer;
@@ -932,7 +939,7 @@ md_merge_lines_alloc(MD_CTX* ctx, OFF beg, OFF end, const MD_LINE* lines, int n_
         return -1;
     }
 
-    md_merge_lines(ctx, beg, end, lines, n_lines,
+    md_merge_lines(ctx, beg, end, lines,
                 line_break_replacement_char, buffer, p_size);
 
     *p_str = buffer;
@@ -1231,7 +1238,8 @@ md_is_html_any(MD_CTX* ctx, const MD_LINE* lines, int n_lines, OFF beg, OFF max_
  ****************************/
 
 static int
-md_is_hex_entity_contents(MD_CTX* ctx, const CHAR* text, OFF beg, OFF max_end, OFF* p_end)
+md_is_hex_entity_contents(MD_UNUSED MD_CTX* ctx, const CHAR* text,
+                          OFF beg, OFF max_end, OFF* p_end)
 {
     OFF off = beg;
 
@@ -1247,7 +1255,8 @@ md_is_hex_entity_contents(MD_CTX* ctx, const CHAR* text, OFF beg, OFF max_end, O
 }
 
 static int
-md_is_dec_entity_contents(MD_CTX* ctx, const CHAR* text, OFF beg, OFF max_end, OFF* p_end)
+md_is_dec_entity_contents(MD_UNUSED MD_CTX* ctx, const CHAR* text,
+                          OFF beg, OFF max_end, OFF* p_end)
 {
     OFF off = beg;
 
@@ -1263,7 +1272,8 @@ md_is_dec_entity_contents(MD_CTX* ctx, const CHAR* text, OFF beg, OFF max_end, O
 }
 
 static int
-md_is_named_entity_contents(MD_CTX* ctx, const CHAR* text, OFF beg, OFF max_end, OFF* p_end)
+md_is_named_entity_contents(MD_UNUSED MD_CTX* ctx, const CHAR* text,
+                            OFF beg, OFF max_end, OFF* p_end)
 {
     OFF off = beg;
 
@@ -1369,7 +1379,7 @@ md_build_attr_append_substr(MD_CTX* ctx, MD_ATTRIBUTE_BUILD* build,
 }
 
 static void
-md_free_attribute(MD_CTX* ctx, MD_ATTRIBUTE_BUILD* build)
+md_free_attribute(MD_UNUSED MD_CTX* ctx, MD_ATTRIBUTE_BUILD* build)
 {
     if(build->substr_alloc > 0) {
         free(build->text);
@@ -2158,7 +2168,7 @@ md_is_link_reference_definition(MD_CTX* ctx, const MD_LINE* lines, int n_lines)
 
     if(label_is_multiline) {
         MD_CHECK(md_merge_lines_alloc(ctx, label_contents_beg, label_contents_end,
-                    lines + label_contents_line_index, n_lines - label_contents_line_index,
+                    lines + label_contents_line_index,
                     _T(' '), &def->label, &def->label_size));
         def->label_needs_free = TRUE;
     } else {
@@ -2168,7 +2178,7 @@ md_is_link_reference_definition(MD_CTX* ctx, const MD_LINE* lines, int n_lines)
 
     if(title_is_multiline) {
         MD_CHECK(md_merge_lines_alloc(ctx, title_contents_beg, title_contents_end,
-                    lines + title_contents_line_index, n_lines - title_contents_line_index,
+                    lines + title_contents_line_index,
                     _T('\n'), &def->title, &def->title_size));
         def->title_needs_free = TRUE;
     } else {
@@ -2221,8 +2231,7 @@ md_is_link_reference(MD_CTX* ctx, const MD_LINE* lines, int n_lines,
         end_line++;
 
     if(beg_line != end_line) {
-        MD_CHECK(md_merge_lines_alloc(ctx, beg, end, beg_line,
-                 n_lines - (beg_line - lines), _T(' '), &label, &label_size));
+        MD_CHECK(md_merge_lines_alloc(ctx, beg, end, beg_line, _T(' '), &label, &label_size));
     } else {
         label = (CHAR*) STR(beg);
         label_size = end - beg;
@@ -2331,7 +2340,7 @@ md_is_inline_link_spec(MD_CTX* ctx, const MD_LINE* lines, int n_lines,
         attr->title_needs_free = FALSE;
     } else {
         MD_CHECK(md_merge_lines_alloc(ctx, title_contents_beg, title_contents_end,
-                    lines + title_contents_line_index, n_lines - title_contents_line_index,
+                    lines + title_contents_line_index,
                     _T('\n'), &attr->title, &attr->title_size));
         attr->title_needs_free = TRUE;
     }
@@ -3378,8 +3387,7 @@ md_analyze_bracket(MD_CTX* ctx, int mark_index)
 }
 
 /* Forward declaration. */
-static void md_analyze_link_contents(MD_CTX* ctx, const MD_LINE* lines, int n_lines,
-                                     int mark_beg, int mark_end);
+static void md_analyze_link_contents(MD_CTX* ctx, int mark_beg, int mark_end);
 
 static int
 md_resolve_links(MD_CTX* ctx, const MD_LINE* lines, int n_lines)
@@ -3498,7 +3506,7 @@ md_resolve_links(MD_CTX* ctx, const MD_LINE* lines, int n_lines)
                 if(delim != NULL) {
                     delim->flags |= MD_MARK_RESOLVED;
                     md_rollback(ctx, opener_index, delim_index, MD_ROLLBACK_ALL);
-                    md_analyze_link_contents(ctx, lines, n_lines, opener_index+1, closer_index);
+                    md_analyze_link_contents(ctx, opener_index+1, closer_index);
                 } else {
                     md_rollback(ctx, opener_index, closer_index, MD_ROLLBACK_ALL);
                 }
@@ -3523,6 +3531,10 @@ md_resolve_links(MD_CTX* ctx, const MD_LINE* lines, int n_lines)
             if(is_link) {
                 /* Eat the 2nd "[...]". */
                 closer->end = next_closer->end;
+
+                /* Do not analyze the label as a standalone link in the next
+                 * iteration. */
+                next_index = ctx->marks[next_index].prev;
             }
         } else {
             if(closer->end < ctx->size  &&  CH(closer->end) == _T('(')) {
@@ -3599,7 +3611,7 @@ md_resolve_links(MD_CTX* ctx, const MD_LINE* lines, int n_lines)
                 last_img_end = closer->end;
             }
 
-            md_analyze_link_contents(ctx, lines, n_lines, opener_index+1, closer_index);
+            md_analyze_link_contents(ctx, opener_index+1, closer_index);
         }
 
         opener_index = next_index;
@@ -3678,7 +3690,7 @@ md_analyze_emph(MD_CTX* ctx, int mark_index)
     /* If we can be a closer, try to resolve with the preceding opener. */
     if(mark->flags & MD_MARK_POTENTIAL_CLOSER) {
         MD_MARK* opener = NULL;
-        int opener_index;
+        int opener_index = 0;
 
         if(mark->ch == _T('*')) {
             MD_MARKCHAIN* opener_chains[6];
@@ -3913,8 +3925,7 @@ md_analyze_permissive_email_autolink(MD_CTX* ctx, int mark_index)
 }
 
 static inline void
-md_analyze_marks(MD_CTX* ctx, const MD_LINE* lines, int n_lines,
-                 int mark_beg, int mark_end, const CHAR* mark_chars)
+md_analyze_marks(MD_CTX* ctx, int mark_beg, int mark_end, const CHAR* mark_chars)
 {
     int i = mark_beg;
 
@@ -3972,10 +3983,10 @@ md_analyze_inlines(MD_CTX* ctx, const MD_LINE* lines, int n_lines, int table_mod
 
     /* We analyze marks in few groups to handle their precedence. */
     /* (1) Entities; code spans; autolinks; raw HTML. */
-    md_analyze_marks(ctx, lines, n_lines, 0, ctx->n_marks, _T("&"));
+    md_analyze_marks(ctx, 0, ctx->n_marks, _T("&"));
 
     /* (2) Links. */
-    md_analyze_marks(ctx, lines, n_lines, 0, ctx->n_marks, _T("[]!"));
+    md_analyze_marks(ctx, 0, ctx->n_marks, _T("[]!"));
     MD_CHECK(md_resolve_links(ctx, lines, n_lines));
     BRACKET_OPENERS.head = -1;
     BRACKET_OPENERS.tail = -1;
@@ -3990,24 +4001,23 @@ md_analyze_inlines(MD_CTX* ctx, const MD_LINE* lines, int n_lines, int table_mod
         TABLECELLBOUNDARIES.head = -1;
         TABLECELLBOUNDARIES.tail = -1;
         ctx->n_table_cell_boundaries = 0;
-        md_analyze_marks(ctx, lines, n_lines, 0, ctx->n_marks, _T("|"));
+        md_analyze_marks(ctx, 0, ctx->n_marks, _T("|"));
         return ret;
     }
 
     /* (4) Emphasis and strong emphasis; permissive autolinks. */
-    md_analyze_link_contents(ctx, lines, n_lines, 0, ctx->n_marks);
+    md_analyze_link_contents(ctx, 0, ctx->n_marks);
 
 abort:
     return ret;
 }
 
 static void
-md_analyze_link_contents(MD_CTX* ctx, const MD_LINE* lines, int n_lines,
-                         int mark_beg, int mark_end)
+md_analyze_link_contents(MD_CTX* ctx, int mark_beg, int mark_end)
 {
     int i;
 
-    md_analyze_marks(ctx, lines, n_lines, mark_beg, mark_end, _T("*_~$@:."));
+    md_analyze_marks(ctx, mark_beg, mark_end, _T("*_~$@:."));
 
     for(i = OPENERS_CHAIN_FIRST; i <= OPENERS_CHAIN_LAST; i++) {
         ctx->mark_chains[i].head = -1;
@@ -5654,7 +5664,7 @@ md_line_indentation(MD_CTX* ctx, unsigned total_indent, OFF beg, OFF* p_end)
     return indent - total_indent;
 }
 
-static const MD_LINE_ANALYSIS md_dummy_blank_line = { MD_LINE_BLANK, 0 };
+static const MD_LINE_ANALYSIS md_dummy_blank_line = { MD_LINE_BLANK, 0, 0, 0, 0 };
 
 /* Analyze type of the line and find some its properties. This serves as a
  * main input for determining type and boundaries of a block. */
