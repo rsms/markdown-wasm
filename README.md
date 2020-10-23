@@ -2,13 +2,11 @@
 
 Very fast Markdown parser & HTML renderer implemented in WebAssembly
 
-- Zero dependencies
-- Portable & safe
+- Zero dependencies (31 kB gzipped)
+- Portable & safe (WASM executes in isolated memory and can run almost anywhere)
 - [Simple API](#api)
-- [Fast and efficient](#benchmarks)
-- JS + WASM is only 31 kB gzipped
-
-Based on [md4c](http://github.com/mity/md4c)
+- [Very fast](#benchmarks)
+- Based on [md4c](http://github.com/mity/md4c) — compliant to the CommonMark specification
 
 
 ## Examples
