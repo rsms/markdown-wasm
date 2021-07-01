@@ -35,6 +35,6 @@
   "author": "Rasmus Andersson <https://rsms.me/>",
   "license": "MIT",
   "devDependencies": {
-    "wasmc": "^2.2.0"
+    "wasmc": "^2.2.1"
   }
 }
