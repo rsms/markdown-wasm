@@ -1,7 +1,6 @@
 #include <ctype.h>
 #include "common.h"
 #include "wlib.h"
-#include "wbuf.h"
 #include "fmt_html.h"
 // #include "fmt_json.h"
 
@@ -20,7 +19,7 @@ typedef enum ErrorCode {
 
 #if DEBUG
 void __attribute__((constructor)) init() {
-  dlog("WASM INIT\n");
+  dlog("WASM INIT");
 }
 #endif
 
@@ -35,21 +34,27 @@ export size_t parseUTF8(
   u32 inbuflen,
   u32 parser_flags,
   OutputFlags outflags,
-  const char** outptr
+  const char** outptr,
+  JSTextFilterFun onCodeBlock
 ) {
-  dlog("parseUTF8 called with inbufptr=%p  inbuflen=%u\n", inbufptr, inbuflen);
+  dlog("parseUTF8 called with inbufptr=%p  inbuflen=%u", inbufptr, inbuflen);
 
   WBufReset(&outbuf);
 
   if (outflags & OutputFlagHTML) {
     WBufReserve(&outbuf, inbuflen * 2);  // approximate output size to minimize reallocations
 
-    u32 render_flags = 0;
-    if (outflags & OutputFlagXHTML) {
-      render_flags |= MD_HTML_FLAG_XHTML;
-    }
+    FmtHTML fmt = {
+      .flags = 0,
+      .parserFlags = parser_flags,
+      .outbuf = &outbuf,
+      .onCodeBlock = onCodeBlock,
+    };
 
-    if (fmt_html(inbufptr, inbuflen, &outbuf, parser_flags, render_flags) != 0) {
+    if (outflags & OutputFlagXHTML)
+      fmt.flags |= MD_HTML_FLAG_XHTML;
+
+    if (fmt_html(inbufptr, inbuflen, &fmt) != 0) {
       // fmt_html returns status of md_parse which only fails in extreme cases
       // like when out of memory. md4c does not provide error codes or error messages.
       WErrSet(ERR_MD_PARSE, "md parser error");

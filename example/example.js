@@ -1,8 +1,15 @@
 const fs = require("fs")
 const md = require("../dist/markdown.node.js")
+// const md = require("../build/debug/markdown.node.js")
 
 const source = fs.readFileSync(__dirname + "/example.md")
-const outbuf = md.parse(source, { bytes: true })
+const outbuf = md.parse(source, {
+  bytes: true,
+  onCodeBlock(lang, body) {
+    console.log(`onCodeBlock (${lang})`)
+    return html_escape(body.toString().toUpperCase())
+  },
+})
 const outfile = __dirname + "/example.html"
 console.log("write", outfile)
 fs.writeFileSync(outfile, outbuf)
@@ -23,4 +30,10 @@ if (process.argv.includes("-bench")) {
   }
   const timeSpent = Date.now() - timeStart
   console.log(`benchmark end -- avg parse time: ${((timeSpent / ntotal) * 1000).toFixed(1)}us`)
+}
+
+function html_escape(str) {
+  return str.replace(/[&<>'"]/g, tag => ({
+    '&': '&amp;','<': '&lt;','>': '&gt;',"'": '&#39;','"': '&quot;'
+  }[tag]))
 }

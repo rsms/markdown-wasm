@@ -54,7 +54,14 @@ typedef int32_t  i32;
 #endif
 #if DEBUG
 #include <stdio.h>
-  #define dlog(...)  printf(__VA_ARGS__)
+  #define dlog(fmt, ...)  printf(fmt "\n", ##__VA_ARGS__)
 #else
   #define dlog(...)
 #endif /* DEBUG > 0 */
+
+#include "wbuf.h"
+
+typedef int(*JSTextFilterFun)(
+  const char*  metaptr, u32 metalen,
+  const char*  inptr,   u32 inlen,
+  const char** outptrp); // return outlen

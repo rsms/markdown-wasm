@@ -30,12 +30,12 @@
 #include "fmt_html.h"
 #include "md4c.h"
 
-typedef struct HtmlRenderer_st {
-  WBuf* outbuf;
-  int   imgnest;
-  int   addanchor;
-  u32   flags;
-} HtmlRenderer;
+// typedef struct FmtHTML_st {
+//   WBuf* outbuf;
+//   int   imgnest;
+//   int   addanchor;
+//   u32   flags;
+// } FmtHTML;
 
 
 static char htmlEscapeMap[256] = {
@@ -61,20 +61,20 @@ static char htmlEscapeMap[256] = {
 static const char ucReplacementUTF8[] = { 0xef, 0xbf, 0xbd };
 
 
-static inline void render_text(HtmlRenderer* r, const char* pch, size_t len) {
+static inline void render_text(FmtHTML* r, const char* pch, size_t len) {
   WBufAppendBytes(r->outbuf, pch, len);
 }
 
-static inline void render_literal(HtmlRenderer* r, const char* cs) {
+static inline void render_literal(FmtHTML* r, const char* cs) {
   WBufAppendBytes(r->outbuf, cs, strlen(cs));
 }
 
-static inline void render_char(HtmlRenderer* r, char c) {
+static inline void render_char(FmtHTML* r, char c) {
   WBufAppendc(r->outbuf, c);
 }
 
 
-static void render_html_escaped(HtmlRenderer* r, const char* data, size_t size) {
+static void render_html_escaped(FmtHTML* r, const char* data, size_t size) {
   MD_OFFSET beg = 0;
   MD_OFFSET off = 0;
 
@@ -167,7 +167,7 @@ static size_t WBufAppendSlug(WBuf* b, const char* pch, size_t len) {
 }
 
 
-static void render_attribute(HtmlRenderer* r, const MD_ATTRIBUTE* attr) {
+static void render_attribute(FmtHTML* r, const MD_ATTRIBUTE* attr) {
   int i;
   for (i = 0; attr->substr_offsets[i] < attr->size; i++) {
     MD_TEXTTYPE type = attr->substr_types[i];
@@ -183,7 +183,7 @@ static void render_attribute(HtmlRenderer* r, const MD_ATTRIBUTE* attr) {
 }
 
 
-static void render_open_ol_block(HtmlRenderer* r, const MD_BLOCK_OL_DETAIL* det) {
+static void render_open_ol_block(FmtHTML* r, const MD_BLOCK_OL_DETAIL* det) {
   if (det->start == 1) {
     render_literal(r, "<ol>\n");
   } else {
@@ -193,7 +193,7 @@ static void render_open_ol_block(HtmlRenderer* r, const MD_BLOCK_OL_DETAIL* det)
   }
 }
 
-static void render_open_li_block(HtmlRenderer* r, const MD_BLOCK_LI_DETAIL* det) {
+static void render_open_li_block(FmtHTML* r, const MD_BLOCK_LI_DETAIL* det) {
   if (det->is_task) {
     render_literal(r, "<li class=\"task-list-item\"><input type=\"checkbox\" disabled");
     if (det->task_mark == 'x' || det->task_mark == 'X') {
@@ -205,7 +205,7 @@ static void render_open_li_block(HtmlRenderer* r, const MD_BLOCK_LI_DETAIL* det)
   }
 }
 
-static void render_open_code_block(HtmlRenderer* r, const MD_BLOCK_CODE_DETAIL* det) {
+static void render_open_code_block(FmtHTML* r, const MD_BLOCK_CODE_DETAIL* det) {
   render_literal(r, "<pre><code");
   if (det->lang.text != NULL) {
     render_literal(r, " class=\"language-");
@@ -213,9 +213,41 @@ static void render_open_code_block(HtmlRenderer* r, const MD_BLOCK_CODE_DETAIL* 
     render_char(r, '"');
   }
   render_char(r, '>');
+  r->codeBlockNest++;
 }
 
-static void render_open_td_block(HtmlRenderer* r, bool isTH, const MD_BLOCK_TD_DETAIL* det) {
+static void render_close_code_block(FmtHTML* r, const MD_BLOCK_CODE_DETAIL* det) {
+  dlog("end code block (lang \"%.*s\")", (int)det->lang.size, det->lang.text);
+
+  r->codeBlockNest--;
+
+  if (r->onCodeBlock) {
+    const char* text = r->tmpbuf.start;
+    size_t len = WBufLen(&r->tmpbuf);
+
+    int outlen = -1;
+
+    if (len <= 0x7FFFFFFF) {
+      const char* outptr = NULL;
+      outlen = r->onCodeBlock(det->lang.text, (u32)det->lang.size, text, (u32)len, &outptr);
+      if (outlen > 0 && outptr != NULL)
+        WBufAppendBytes(r->outbuf, outptr, (size_t)outlen);
+      if (outptr != NULL)
+        free((void*)outptr);
+    }
+
+    if (outlen < 0) {
+      // The function failed or opted out of taking care of formatting
+      render_html_escaped(r, text, len);
+    }
+
+    WBufReset(&r->tmpbuf);
+  }
+
+  render_literal(r, "</code></pre>\n");
+}
+
+static void render_open_td_block(FmtHTML* r, bool isTH, const MD_BLOCK_TD_DETAIL* det) {
   render_text(r, isTH ? "<th" : "<td", 3);
   switch (det->align) {
     case MD_ALIGN_LEFT:   render_literal(r, " align=\"left\">"); break;
@@ -225,7 +257,7 @@ static void render_open_td_block(HtmlRenderer* r, bool isTH, const MD_BLOCK_TD_D
   }
 }
 
-static void render_open_a_span(HtmlRenderer* r, const MD_SPAN_A_DETAIL* det) {
+static void render_open_a_span(FmtHTML* r, const MD_SPAN_A_DETAIL* det) {
   render_literal(r, "<a href=\"");
   render_attribute(r, &det->href);
   if (det->title.text != NULL) {
@@ -235,14 +267,14 @@ static void render_open_a_span(HtmlRenderer* r, const MD_SPAN_A_DETAIL* det) {
   render_literal(r, "\">");
 }
 
-static void render_open_img_span(HtmlRenderer* r, const MD_SPAN_IMG_DETAIL* det) {
+static void render_open_img_span(FmtHTML* r, const MD_SPAN_IMG_DETAIL* det) {
   render_literal(r, "<img src=\"");
   render_attribute(r, &det->src);
   render_literal(r, "\" alt=\"");
   r->imgnest++;
 }
 
-static void render_close_img_span(HtmlRenderer* r, const MD_SPAN_IMG_DETAIL* det) {
+static void render_close_img_span(FmtHTML* r, const MD_SPAN_IMG_DETAIL* det) {
   if(det->title.text != NULL) {
     render_literal(r, "\" title=\"");
     render_attribute(r, &det->title);
@@ -251,7 +283,7 @@ static void render_close_img_span(HtmlRenderer* r, const MD_SPAN_IMG_DETAIL* det
   r->imgnest--;
 }
 
-static void render_open_wikilink_span(HtmlRenderer* r, const MD_SPAN_WIKILINK_DETAIL* det) {
+static void render_open_wikilink_span(FmtHTML* r, const MD_SPAN_WIKILINK_DETAIL* det) {
   render_literal(r, "<x-wikilink data-target=\"");
   render_attribute(r, &det->target);
   render_literal(r, "\">");
@@ -266,30 +298,30 @@ static void render_open_wikilink_span(HtmlRenderer* r, const MD_SPAN_WIKILINK_DE
 
 static int enter_block_callback(MD_BLOCKTYPE type, void* detail, void* userdata) {
   static const MD_CHAR* head[6] = { "<h1>", "<h2>", "<h3>", "<h4>", "<h5>", "<h6>" };
-  HtmlRenderer* r = (HtmlRenderer*) userdata;
+  FmtHTML* r = (FmtHTML*) userdata;
 
   switch(type) {
-    case MD_BLOCK_DOC:      /* noop */ break;
-    case MD_BLOCK_QUOTE:    render_literal(r, "<blockquote>\n"); break;
-    case MD_BLOCK_UL:       render_literal(r, "<ul>\n"); break;
-    case MD_BLOCK_OL:       render_open_ol_block(r, (const MD_BLOCK_OL_DETAIL*)detail); break;
-    case MD_BLOCK_LI:       render_open_li_block(r, (const MD_BLOCK_LI_DETAIL*)detail); break;
-    case MD_BLOCK_HR:       render_literal(r, (r->flags & MD_HTML_FLAG_XHTML) ? "<hr/>\n" : "<hr>\n"); break;
+    case MD_BLOCK_DOC:   /* noop */ break;
+    case MD_BLOCK_QUOTE: render_literal(r, "<blockquote>\n"); break;
+    case MD_BLOCK_UL:    render_literal(r, "<ul>\n"); break;
+    case MD_BLOCK_OL:    render_open_ol_block(r, (const MD_BLOCK_OL_DETAIL*)detail); break;
+    case MD_BLOCK_LI:    render_open_li_block(r, (const MD_BLOCK_LI_DETAIL*)detail); break;
+    case MD_BLOCK_HR:    render_literal(r, (r->flags & MD_HTML_FLAG_XHTML) ? "<hr/>\n" : "<hr>\n"); break;
     case MD_BLOCK_H:
     {
       render_literal(r, head[((MD_BLOCK_H_DETAIL*)detail)->level - 1]);
       r->addanchor = 1;
       break;
     }
-    case MD_BLOCK_CODE:     render_open_code_block(r, (const MD_BLOCK_CODE_DETAIL*) detail); break;
-    case MD_BLOCK_HTML:     /* noop */ break;
-    case MD_BLOCK_P:        render_literal(r, "<p>"); break;
-    case MD_BLOCK_TABLE:    render_literal(r, "<table>\n"); break;
-    case MD_BLOCK_THEAD:    render_literal(r, "<thead>\n"); break;
-    case MD_BLOCK_TBODY:    render_literal(r, "<tbody>\n"); break;
-    case MD_BLOCK_TR:       render_literal(r, "<tr>\n"); break;
-    case MD_BLOCK_TH:       render_open_td_block(r, true, (MD_BLOCK_TD_DETAIL*)detail); break;
-    case MD_BLOCK_TD:       render_open_td_block(r, false, (MD_BLOCK_TD_DETAIL*)detail); break;
+    case MD_BLOCK_CODE:  render_open_code_block(r, (const MD_BLOCK_CODE_DETAIL*) detail); break;
+    case MD_BLOCK_HTML:  /* noop */ break;
+    case MD_BLOCK_P:     render_literal(r, "<p>"); break;
+    case MD_BLOCK_TABLE: render_literal(r, "<table>\n"); break;
+    case MD_BLOCK_THEAD: render_literal(r, "<thead>\n"); break;
+    case MD_BLOCK_TBODY: render_literal(r, "<tbody>\n"); break;
+    case MD_BLOCK_TR:    render_literal(r, "<tr>\n"); break;
+    case MD_BLOCK_TH:    render_open_td_block(r, true, (MD_BLOCK_TD_DETAIL*)detail); break;
+    case MD_BLOCK_TD:    render_open_td_block(r, false, (MD_BLOCK_TD_DETAIL*)detail); break;
   }
 
   return 0;
@@ -297,32 +329,32 @@ static int enter_block_callback(MD_BLOCKTYPE type, void* detail, void* userdata)
 
 static int leave_block_callback(MD_BLOCKTYPE type, void* detail, void* userdata) {
   static const MD_CHAR* head[6] = { "</h1>\n", "</h2>\n", "</h3>\n", "</h4>\n", "</h5>\n", "</h6>\n" };
-  HtmlRenderer* r = (HtmlRenderer*) userdata;
+  FmtHTML* r = (FmtHTML*) userdata;
 
   switch(type) {
-    case MD_BLOCK_DOC:      /*noop*/ break;
-    case MD_BLOCK_QUOTE:    render_literal(r, "</blockquote>\n"); break;
-    case MD_BLOCK_UL:       render_literal(r, "</ul>\n"); break;
-    case MD_BLOCK_OL:       render_literal(r, "</ol>\n"); break;
-    case MD_BLOCK_LI:       render_literal(r, "</li>\n"); break;
-    case MD_BLOCK_HR:       /*noop*/ break;
-    case MD_BLOCK_H:        render_literal(r, head[((MD_BLOCK_H_DETAIL*)detail)->level - 1]); break;
-    case MD_BLOCK_CODE:     render_literal(r, "</code></pre>\n"); break;
-    case MD_BLOCK_HTML:     /* noop */ break;
-    case MD_BLOCK_P:        render_literal(r, "</p>\n"); break;
-    case MD_BLOCK_TABLE:    render_literal(r, "</table>\n"); break;
-    case MD_BLOCK_THEAD:    render_literal(r, "</thead>\n"); break;
-    case MD_BLOCK_TBODY:    render_literal(r, "</tbody>\n"); break;
-    case MD_BLOCK_TR:       render_literal(r, "</tr>\n"); break;
-    case MD_BLOCK_TH:       render_literal(r, "</th>\n"); break;
-    case MD_BLOCK_TD:       render_literal(r, "</td>\n"); break;
+    case MD_BLOCK_DOC:   /*noop*/ break;
+    case MD_BLOCK_QUOTE: render_literal(r, "</blockquote>\n"); break;
+    case MD_BLOCK_UL:    render_literal(r, "</ul>\n"); break;
+    case MD_BLOCK_OL:    render_literal(r, "</ol>\n"); break;
+    case MD_BLOCK_LI:    render_literal(r, "</li>\n"); break;
+    case MD_BLOCK_HR:    /*noop*/ break;
+    case MD_BLOCK_H:     render_literal(r, head[((MD_BLOCK_H_DETAIL*)detail)->level - 1]); break;
+    case MD_BLOCK_CODE:  render_close_code_block(r, (const MD_BLOCK_CODE_DETAIL*)detail); break;
+    case MD_BLOCK_HTML:  /* noop */ break;
+    case MD_BLOCK_P:     render_literal(r, "</p>\n"); break;
+    case MD_BLOCK_TABLE: render_literal(r, "</table>\n"); break;
+    case MD_BLOCK_THEAD: render_literal(r, "</thead>\n"); break;
+    case MD_BLOCK_TBODY: render_literal(r, "</tbody>\n"); break;
+    case MD_BLOCK_TR:    render_literal(r, "</tr>\n"); break;
+    case MD_BLOCK_TH:    render_literal(r, "</th>\n"); break;
+    case MD_BLOCK_TD:    render_literal(r, "</td>\n"); break;
   }
 
   return 0;
 }
 
 static int enter_span_callback(MD_SPANTYPE type, void* detail, void* userdata) {
-  HtmlRenderer* r = (HtmlRenderer*) userdata;
+  FmtHTML* r = (FmtHTML*) userdata;
 
   if(r->imgnest > 0) {
     /* We are inside a Markdown image label. Markdown allows to use any
@@ -360,7 +392,7 @@ static int enter_span_callback(MD_SPANTYPE type, void* detail, void* userdata) {
 }
 
 static int leave_span_callback(MD_SPANTYPE type, void* detail, void* userdata) {
-  HtmlRenderer* r = (HtmlRenderer*) userdata;
+  FmtHTML* r = (FmtHTML*) userdata;
 
   if(r->imgnest > 0) {
     /* Ditto as in enter_span_callback(), except we have to allow the
@@ -387,7 +419,12 @@ static int leave_span_callback(MD_SPANTYPE type, void* detail, void* userdata) {
 }
 
 static int text_callback(MD_TEXTTYPE type, const MD_CHAR* text, MD_SIZE size, void* userdata) {
-  HtmlRenderer* r = (HtmlRenderer*) userdata;
+  FmtHTML* r = (FmtHTML*) userdata;
+
+  if (r->codeBlockNest && r->onCodeBlock) {
+    WBufAppendBytes(&r->tmpbuf, text, size);
+    return 0;
+  }
 
   if (r->addanchor) {
     r->addanchor = 0;
@@ -409,7 +446,7 @@ static int text_callback(MD_TEXTTYPE type, const MD_CHAR* text, MD_SIZE size, vo
     }
   }
 
-  switch(type) {
+  switch (type) {
     case MD_TEXT_NULLCHAR:  render_text(r, ucReplacementUTF8, sizeof(ucReplacementUTF8)); break;
     case MD_TEXT_BR:
       render_literal(
@@ -435,18 +472,15 @@ static int text_callback(MD_TEXTTYPE type, const MD_CHAR* text, MD_SIZE size, vo
 //   dlog("MD4C: %s\n", msg);
 // }
 
-int fmt_html(
-  const MD_CHAR* input,
-  MD_SIZE input_size,
-  WBuf* outbuf,
-  u32 parser_flags,
-  u32 render_flags
-) {
-  HtmlRenderer render = { outbuf, 0, 0, render_flags };
+int fmt_html(const MD_CHAR* input, MD_SIZE input_size, FmtHTML* fmt) {
+  fmt->imgnest = 0;
+  fmt->addanchor = 0;
+  fmt->codeBlockNest = 0;
+  fmt->tmpbuf = (WBuf){0};
 
   MD_PARSER parser = {
     0,
-    parser_flags,
+    fmt->parserFlags,
     enter_block_callback,
     leave_block_callback,
     enter_span_callback,
@@ -456,5 +490,11 @@ int fmt_html(
     NULL
   };
 
-  return md_parse(input, input_size, &parser, (void*) &render);
+  WBufInit(&fmt->tmpbuf);
+
+  int res = md_parse(input, input_size, &parser, (void*)fmt);
+
+  WBufFree(&fmt->tmpbuf);
+
+  return res;
 }

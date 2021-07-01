@@ -23,6 +23,10 @@ const m = {
   ] : [
     // release flags
   ]),
+  lflags: [
+    // force inclusion of addFunction & removeFunction in release builds (emcc bug?)
+    "-s","EXPORTED_RUNTIME_METHODS=addFunction,removeFunction",
+  ],
   constants: {
     VERSION: package.version,
   },

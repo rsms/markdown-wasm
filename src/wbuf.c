@@ -1,4 +1,4 @@
-#include "wbuf.h"
+#include "common.h"
 
 void WBufInit(WBuf* b) {
   b->start = 0;

@@ -1,5 +1,4 @@
 #pragma once
-#include "common.h"
 
 typedef struct WBuf_s {
   char* start; // pointer to start of data
