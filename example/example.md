@@ -82,3 +82,5 @@ function codeBlocks() {
 ## ?!Anöt//her!!
 
 ## ?!!
+
+[XSS test](javAscRipt:alert("xss"))

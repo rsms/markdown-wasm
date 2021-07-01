@@ -25,6 +25,7 @@
 
 #include <string.h>
 #include <ctype.h>
+#include <strings.h>
 
 #include "common.h"
 #include "fmt_html.h"
@@ -257,9 +258,21 @@ static void render_open_td_block(FmtHTML* r, bool isTH, const MD_BLOCK_TD_DETAIL
   }
 }
 
+static bool is_javascript_uri(const MD_CHAR* text, size_t len) {
+  return (
+    len >= strlen("javascript:") &&
+    strncasecmp(text, "javascript:", strlen("javascript:")) == 0
+  );
+}
+
 static void render_open_a_span(FmtHTML* r, const MD_SPAN_A_DETAIL* det) {
   render_literal(r, "<a href=\"");
-  render_attribute(r, &det->href);
+  // skip "javascript:" URIs unless explicitly allowed
+  if ((r->flags & OutputFlagAllowJSURI) != 0 ||
+      !is_javascript_uri(det->href.text, det->href.size))
+  {
+    render_attribute(r, &det->href);
+  }
   if (det->title.text != NULL) {
     render_literal(r, "\" title=\"");
     render_attribute(r, &det->title);
@@ -279,7 +292,7 @@ static void render_close_img_span(FmtHTML* r, const MD_SPAN_IMG_DETAIL* det) {
     render_literal(r, "\" title=\"");
     render_attribute(r, &det->title);
   }
-  render_literal(r, (r->flags & MD_HTML_FLAG_XHTML) ? "\"/>" : "\">");
+  render_literal(r, (r->flags & OutputFlagXHTML) ? "\"/>" : "\">");
   r->imgnest--;
 }
 
@@ -306,7 +319,7 @@ static int enter_block_callback(MD_BLOCKTYPE type, void* detail, void* userdata)
     case MD_BLOCK_UL:    render_literal(r, "<ul>\n"); break;
     case MD_BLOCK_OL:    render_open_ol_block(r, (const MD_BLOCK_OL_DETAIL*)detail); break;
     case MD_BLOCK_LI:    render_open_li_block(r, (const MD_BLOCK_LI_DETAIL*)detail); break;
-    case MD_BLOCK_HR:    render_literal(r, (r->flags & MD_HTML_FLAG_XHTML) ? "<hr/>\n" : "<hr>\n"); break;
+    case MD_BLOCK_HR:    render_literal(r, (r->flags & OutputFlagXHTML) ? "<hr/>\n" : "<hr>\n"); break;
     case MD_BLOCK_H:
     {
       render_literal(r, head[((MD_BLOCK_H_DETAIL*)detail)->level - 1]);
@@ -379,8 +392,8 @@ static int enter_span_callback(MD_SPANTYPE type, void* detail, void* userdata) {
     case MD_SPAN_EM:                render_literal(r, "<em>"); break;
     case MD_SPAN_STRONG:            render_literal(r, "<b>"); break;
     case MD_SPAN_U:                 render_literal(r, "<u>"); break;
-    case MD_SPAN_A:                 render_open_a_span(r, (MD_SPAN_A_DETAIL*) detail); break;
-    case MD_SPAN_IMG:               render_open_img_span(r, (MD_SPAN_IMG_DETAIL*) detail); break;
+    case MD_SPAN_A:                 render_open_a_span(r, (MD_SPAN_A_DETAIL*)detail); break;
+    case MD_SPAN_IMG:               render_open_img_span(r, (MD_SPAN_IMG_DETAIL*)detail); break;
     case MD_SPAN_CODE:              render_literal(r, "<code>"); break;
     case MD_SPAN_DEL:               render_literal(r, "<del>"); break;
     case MD_SPAN_LATEXMATH:         render_literal(r, "<x-equation>"); break;
@@ -452,12 +465,12 @@ static int text_callback(MD_TEXTTYPE type, const MD_CHAR* text, MD_SIZE size, vo
       render_literal(
         r,
         r->imgnest == 0 ?
-          ((r->flags & MD_HTML_FLAG_XHTML) ? "<br/>\n" : "<br>\n") :
+          ((r->flags & OutputFlagXHTML) ? "<br/>\n" : "<br>\n") :
           " "
       );
       break;
 
-    render_literal(r, (r->flags & MD_HTML_FLAG_XHTML) ? "<hr/>\n" : "<hr>\n"); break;
+    render_literal(r, (r->flags & OutputFlagXHTML) ? "<hr/>\n" : "<hr>\n"); break;
 
     case MD_TEXT_SOFTBR:    render_literal(r, (r->imgnest == 0 ? "\n" : " ")); break;
     case MD_TEXT_HTML:      render_text(r, text, size); break;

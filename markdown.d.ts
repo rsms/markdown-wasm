@@ -28,8 +28,11 @@ export interface ParseOptions {
    */
   bytes? :boolean
 
+  /** Allow "javascript:" in links */
+  allowJSURIs? :boolean
+
   /**
-   * onCodeBlock is an optional callback which if provided is called for each code block.
+   * Optional callback which if provided is called for each code block.
    * langname holds the "language tag", if any, of the block.
    *
    * The returned value is inserted into the resulting HTML verbatim, without HTML escaping.

@@ -41,10 +41,11 @@ export const ParseFlags = {
   NO_HTML: 0x0020 | 0x0040, // NO_HTML_BLOCKS | NO_HTML_SPANS
 }
 
-// these should be in sync with "OutputFlags" in md.c
+// these should be in sync with "OutputFlags" in common.h
 const OutputFlags = {
-  HTML:  1 << 0, // Output HTML
-  XHTML: 1 << 1, // Output XHTML (only has effect with HTML flag set)
+  HTML:       1 << 0, // Output HTML
+  XHTML:      1 << 1, // Output XHTML (only has effect with HTML flag set)
+  AllowJSURI: 1 << 2, // Allow "javascript:" URIs
 }
 
 
@@ -56,7 +57,8 @@ export function parse(source, options) {
     options.parseFlags
   )
 
-  let outputFlags = 0
+  let outputFlags = options.allowJSURIs ? OutputFlags.AllowJSURI : 0
+
   switch (options.format) {
     case "xhtml":
       outputFlags |= OutputFlags.HTML | OutputFlags.XHTML

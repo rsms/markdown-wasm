@@ -61,6 +61,13 @@ typedef int32_t  i32;
 
 #include "wbuf.h"
 
+// these should be in sync with "OutputFlags" in md.js
+typedef enum OutputFlags {
+  OutputFlagHTML       = 1 << 0,
+  OutputFlagXHTML      = 1 << 1,
+  OutputFlagAllowJSURI = 1 << 2, // allow "javascript:" URIs in links
+} OutputFlags;
+
 typedef int(*JSTextFilterFun)(
   const char*  metaptr, u32 metalen,
   const char*  inptr,   u32 inlen,

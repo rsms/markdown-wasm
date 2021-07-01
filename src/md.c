@@ -4,12 +4,6 @@
 #include "fmt_html.h"
 // #include "fmt_json.h"
 
-// these should be in sync with "OutputFlags" in md.js
-typedef enum OutputFlags {
-  OutputFlagHTML  = 1 << 0,
-  OutputFlagXHTML = 1 << 1,
-} OutputFlags;
-
 typedef enum ErrorCode {
   ERR_NONE,
   ERR_MD_PARSE,
@@ -41,18 +35,15 @@ export size_t parseUTF8(
 
   WBufReset(&outbuf);
 
-  if (outflags & OutputFlagHTML) {
+  if ((outflags & OutputFlagHTML) || (outflags & OutputFlagXHTML)) {
     WBufReserve(&outbuf, inbuflen * 2);  // approximate output size to minimize reallocations
 
     FmtHTML fmt = {
-      .flags = 0,
+      .flags = outflags,
       .parserFlags = parser_flags,
       .outbuf = &outbuf,
       .onCodeBlock = onCodeBlock,
     };
-
-    if (outflags & OutputFlagXHTML)
-      fmt.flags |= MD_HTML_FLAG_XHTML;
 
     if (fmt_html(inbufptr, inbuflen, &fmt) != 0) {
       // fmt_html returns status of md_parse which only fails in extreme cases
