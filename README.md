@@ -89,29 +89,22 @@ See [`test/benchmark`](test/benchmark#readme) for more information.
  * parse reads markdown source at s and converts it to HTML.
  * When output is a byte array, it will be a reference.
  */
-export function parse(s :Source, o? :ParseOptions & { asMemoryView? :never|false }) :string
-export function parse(s :Source, o? :ParseOptions & { asMemoryView :true }) :Uint8Array
+export function parse(s :Source, o? :ParseOptions & { bytes? :never|false }) :string
+export function parse(s :Source, o? :ParseOptions & { bytes :true }) :Uint8Array
 
 /** Markdown source code can be provided as a JavaScript string or UTF8 encoded data */
-type Source = string|ArrayLike<number>
+type Source = string | ArrayLike<number>
 
 /** Options for the parse function */
 export interface ParseOptions {
-  /**
-   * Customize parsing.
-   * If not provided, the following flags are used, equating to github-style parsing:
-   *   COLLAPSE_WHITESPACE
-   *   PERMISSIVE_ATX_HEADERS
-   *   PERMISSIVE_URL_AUTO_LINKS
-   *   STRIKETHROUGH
-   *   TABLES
-   *   TASK_LISTS
-   */
+  /** Customize parsing. Defaults to ParseFlags.DEFAULT */
   parseFlags? :ParseFlags
 
+  /** Select output format. Defaults to "html" */
+  format? : "html" | "xhtml"
+
   /**
-   * asMemoryView=true causes parse() to return a view of heap memory as a Uint8Array,
-   * instead of a string.
+   * bytes=true causes parse() to return the result as a Uint8Array instead of a string.
    *
    * The returned Uint8Array is only valid until the next call to parse().
    * If you need to keep the returned data around, call Uint8Array.slice() to make a copy,
@@ -120,7 +113,34 @@ export interface ParseOptions {
    * This only provides a performance benefit when you never need to convert the output
    * to a string. In most cases you're better off leaving this unset or false.
    */
+  bytes? :boolean
+
+  /** Allow "javascript:" in links */
+  allowJSURIs? :boolean
+
+  /**
+   * Optional callback which if provided is called for each code block.
+   * langname holds the "language tag", if any, of the block.
+   *
+   * The returned value is inserted into the resulting HTML verbatim, without HTML escaping.
+   * Thus, you should take care of properly escaping any special HTML characters.
+   *
+   * If the function returns null or undefined, or an exception occurs, the body will be
+   * included as-is after going through HTML escaping.
+   *
+   * Note that use of this callback has an adverse impact on performance as it casues
+   * calls and data to be bridged between WASM and JS on every invocation.
+   */
+  onCodeBlock? :(langname :string, body :UTF8Bytes) => Uint8Array|string|null|undefined
+
+  /** @depreceated use "bytes" instead (v1.1.1) */
   asMemoryView? :boolean
+}
+
+/** UTF8Bytes is a Uint8Array representing UTF8 text  */
+export interface UTF8Bytes extends Uint8Array {
+  /** toString returns a UTF8 decoded string (lazily decoded and cached) */
+  toString() :string
 }
 
 /** Flags that customize Markdown parsing */
@@ -138,13 +158,24 @@ export enum ParseFlags {
   /** Enable tables extension. */                                 TABLES,
   /** Enable task list extension. */                              TASK_LISTS,
   /** Enable wiki links extension. */                             WIKI_LINKS,
+  /** Enable underline extension (disables '_' for emphasis) */   UNDERLINE,
 
-  /** Default flags */                                            DEFAULT,
-  /** Shorthand for NO_HTML_BLOCKS | NO_HTML_SPANS */             NO_HTML,
+  /** Default flags are:
+   *    COLLAPSE_WHITESPACE |
+   *    PERMISSIVE_ATX_HEADERS |
+   *    PERMISSIVE_URL_AUTO_LINKS |
+   *    STRIKETHROUGH |
+   *    TABLES |
+   *    TASK_LISTS
+   */
+  DEFAULT,
+
+  /** Shorthand for NO_HTML_BLOCKS | NO_HTML_SPANS */
+  NO_HTML,
 }
 ```
 
-See `markdown.d.ts`
+See [`markdown.d.ts`](markdown.d.ts)
 
 
 ## Building from source
