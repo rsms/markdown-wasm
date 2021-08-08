@@ -6,6 +6,7 @@ const Path = require('path')
 const commonmark = require('commonmark')
 const Showdown = require('showdown')
 const marked = require('marked')
+const { Remarkable } = require('remarkable');
 const markdownit = require('markdown-it')('commonmark')
 const markdown_wasm = require('../../dist/markdown.node.js')
 
@@ -21,6 +22,9 @@ var showdown = new Showdown.Converter()
 // setup commonmark
 var parser = new commonmark.Parser()
 var renderer = new commonmark.HtmlRenderer()
+
+// setup remarkable
+var remarkable = new Remarkable();
 
 // parse CLI input
 let filename = process.argv[2]
@@ -75,6 +79,9 @@ function benchmarkFile(benchfile) {
   })
   .add('marked', function() {
     marked(contents);
+  })
+  .add('remarkable', function() {
+    remarkable.render(contents);
   })
   .add('markdown-it', function() {
     markdownit.render(contents);
