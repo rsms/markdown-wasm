@@ -63,9 +63,10 @@ typedef int32_t  i32;
 
 // these should be in sync with "OutputFlags" in md.js
 typedef enum OutputFlags {
-  OutputFlagHTML       = 1 << 0,
-  OutputFlagXHTML      = 1 << 1,
-  OutputFlagAllowJSURI = 1 << 2, // allow "javascript:" URIs in links
+  OutputFlagHTML                   = 1 << 0,
+  OutputFlagXHTML                  = 1 << 1,
+  OutputFlagAllowJSURI             = 1 << 2, // allow "javascript:" URIs in links
+  OutputFlagDisableHeadlineAnchors = 1 << 3,
 } OutputFlags;
 
 typedef int(*JSTextFilterFun)(
