@@ -16,6 +16,9 @@ export interface ParseOptions {
   /** Select output format. Defaults to "html" */
   format? : "html" | "xhtml"
 
+  /** Disable anchor tag in headlines. Defaults to `false` */
+  disableHeadlineAnchors? : boolean
+
   /**
    * bytes=true causes parse() to return the result as a Uint8Array instead of a string.
    *

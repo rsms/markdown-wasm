@@ -323,7 +323,7 @@ static int enter_block_callback(MD_BLOCKTYPE type, void* detail, void* userdata)
     case MD_BLOCK_H:
     {
       render_literal(r, head[((MD_BLOCK_H_DETAIL*)detail)->level - 1]);
-      r->addanchor = 1;
+      r->addanchor = !(r->flags & OutputFlagDisableHeadlineAnchors);
       break;
     }
     case MD_BLOCK_CODE:  render_open_code_block(r, (const MD_BLOCK_CODE_DETAIL*) detail); break;

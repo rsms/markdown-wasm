@@ -10,14 +10,14 @@ const wave = "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 exports.numFailures = 0
 
 
-exports.checkHTMLResult = function check(name, inputData, expectedOutputData) {
+exports.checkHTMLResult = function check(name, inputData, expectedOutputData, options = {}) {
   if (typeof inputData == "string") {
     inputData = Buffer.from(inputData, "utf8")
   }
   if (typeof expectedOutputData == "string") {
     expectedOutputData = Buffer.from(expectedOutputData, "utf8")
   }
-  const actual = Buffer.from(md.parse(inputData, { asMemoryView: true }))
+  const actual = Buffer.from(md.parse(inputData, { asMemoryView: true, ...options }))
   if (expectedOutputData.compare(actual) == 0) {
     log(`${name} OK`)
     return true

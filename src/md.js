@@ -43,9 +43,10 @@ export const ParseFlags = {
 
 // these should be in sync with "OutputFlags" in common.h
 const OutputFlags = {
-  HTML:       1 << 0, // Output HTML
-  XHTML:      1 << 1, // Output XHTML (only has effect with HTML flag set)
-  AllowJSURI: 1 << 2, // Allow "javascript:" URIs
+  HTML:                   1 << 0, // Output HTML
+  XHTML:                  1 << 1, // Output XHTML (only has effect with HTML flag set)
+  AllowJSURI:             1 << 2, // Allow "javascript:" URIs
+  DisableHeadlineAnchors: 1 << 3, // Disable anchor tag in headlines.
 }
 
 
@@ -58,6 +59,10 @@ export function parse(source, options) {
   )
 
   let outputFlags = options.allowJSURIs ? OutputFlags.AllowJSURI : 0
+
+  if(options.disableHeadlineAnchors)  {
+    outputFlags |= OutputFlags.DisableHeadlineAnchors;
+  };
 
   switch (options.format) {
     case "xhtml":
